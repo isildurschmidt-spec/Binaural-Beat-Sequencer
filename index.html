@@ -50,7 +50,7 @@
   <main class="wrap">
     <p class="eyebrow">Binaural PWA</p>
     <h1>Binaural Beat Sequencer</h1>
-    <p>Kopfhörer verwenden. Start muss auf dem iPhone per Tap ausgelöst werden. Die Sequenz läuft standardmäßig endlos.</p>
+    <p>Kopfhörer verwenden. Start muss auf dem iPhone per Tap ausgelöst werden. Der aktuell gewählte Beat läuft standardmäßig endlos.</p>
 
     <section class="card">
       <div class="active">
@@ -120,7 +120,7 @@ function render() {
   el("remaining").textContent = clock(remaining);
   el("fill").style.width = `${progress}%`;
   el("playBtn").textContent = isPlaying ? "Ⅱ Pause" : "▶ Start";
-  el("loopBtn").textContent = loopMode ? "∞ Endlos an" : "∞ Endlos aus";
+  el("loopBtn").textContent = loopMode ? "∞ Aktuellen Beat loopen" : "∞ Loop aus";
   document.querySelectorAll(".step").forEach((node, i) => node.classList.toggle("current", i === currentIndex));
 }
 
@@ -219,10 +219,9 @@ async function play(index=currentIndex, seconds=remaining) {
     const elapsed = Math.floor((Date.now() - startedAt) / 1000);
     remaining = Math.max(0, remainingAtStart - elapsed);
     if (remaining <= 0) {
-      if (currentIndex + 1 < steps.length) {
-        play(currentIndex + 1, toSeconds(steps[currentIndex + 1].duration));
-      } else if (loopMode) {
-        play(0, toSeconds(steps[0].duration));
+      if (loopMode) {
+        // Endlos bedeutet: aktuellen Beat wiederholen, nicht zur nächsten Kategorie springen.
+        play(currentIndex, toSeconds(steps[currentIndex].duration));
       } else {
         stop();
       }
