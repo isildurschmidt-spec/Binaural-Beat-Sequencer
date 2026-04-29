@@ -220,7 +220,7 @@ async function play(index=currentIndex, seconds=remaining) {
     remaining = Math.max(0, remainingAtStart - elapsed);
     if (remaining <= 0) {
       if (loopMode) {
-        // Endlos bedeutet: aktuellen Beat wiederholen, nicht zur nächsten Kategorie springen.
+        // Loop-Fix v3: aktuellen Beat wiederholen, nicht zum nächsten Eintrag springen.
         play(currentIndex, toSeconds(steps[currentIndex].duration));
       } else {
         stop();
