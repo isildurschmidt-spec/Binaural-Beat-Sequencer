@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Binaural">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Binaural Beat Sequencer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      background: #09090b; color: #f4f4f5; padding: max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .eyebrow { color:#a1a1aa; letter-spacing:.2em; text-transform:uppercase; font-size:12px; margin: 0 0 8px; }
+    h1 { font-size: clamp(30px, 8vw, 52px); line-height:1; margin:0 0 10px; }
+    p { color:#a1a1aa; line-height:1.45; }
+    .card { background:#18181b; border:1px solid #27272a; border-radius:24px; padding:18px; box-shadow:0 24px 60px rgba(0,0,0,.35); margin: 18px 0; }
+    .active { display:grid; gap:14px; }
+    .label { color:#a1a1aa; font-size:13px; }
+    .title { font-weight:700; font-size:24px; margin-top:3px; }
+    .meta { color:#a1a1aa; margin-top:8px; }
+    .bar { height:12px; background:#27272a; border-radius:99px; overflow:hidden; }
+    .fill { height:100%; width:0%; background:#fafafa; transition:width .2s; }
+    .time { display:flex; justify-content:space-between; color:#a1a1aa; font-size:13px; margin-bottom:7px; }
+    .buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+    button { border:0; border-radius:18px; padding:12px 15px; font-weight:700; font-size:15px; background:#fafafa; color:#09090b; }
+    button.secondary { background:#27272a; color:#fafafa; border:1px solid #3f3f46; }
+    .controls { display:grid; gap:14px; margin-top:18px; }
+    input[type=range] { width:100%; }
+    .list { display:grid; gap:10px; margin: 18px 0; }
+    .step { background:#18181b; border:1px solid #27272a; border-radius:18px; padding:14px; }
+    .step.current { outline:2px solid #fafafa; }
+    .step-head { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; }
+    .section { color:#a1a1aa; font-size:12px; margin-bottom:5px; }
+    .comment { color:#a1a1aa; font-size:13px; margin-top:8px; }
+    .warning { font-size:13px; color:#a1a1aa; margin:20px 0; }
+    @media (min-width: 720px) {
+      .active { grid-template-columns:1.2fr 1fr; align-items:center; }
+      .controls { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="eyebrow">Binaural PWA</p>
+    <h1>Binaural Beat Sequencer</h1>
+    <p>Kopfhörer verwenden. Start muss auf dem iPhone per Tap ausgelöst werden. Die Sequenz läuft standardmäßig endlos.</p>
+
+    <section class="card">
+      <div class="active">
+        <div>
+          <div class="label">Aktiver Schritt</div>
+          <div class="title" id="activeTitle"></div>
+          <div class="meta" id="activeMeta"></div>
+        </div>
+        <div>
+          <div class="time"><span id="elapsed">00:00</span><span id="remaining">00:00</span></div>
+          <div class="bar"><div class="fill" id="fill"></div></div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="playBtn">▶ Start</button>
+        <button class="secondary" id="stopBtn">■ Stop</button>
+        <button class="secondary" id="nextBtn">⏭ Weiter</button>
+        <button class="secondary" id="resetBtn">↻ Schritt neu</button>
+        <button id="loopBtn">∞ Endlos an</button>
+      </div>
+
+      <div class="controls">
+        <label><div class="label" id="volLabel">Lautstärke: 18%</div><input id="volume" type="range" min="0" max="0.5" step="0.01" value="0.18"></label>
+        <label><div class="label" id="fadeLabel">Fade: 250 ms</div><input id="fade" type="range" min="0" max="2000" step="50" value="250"></label>
+      </div>
+    </section>
+
+    <section class="list" id="list"></section>
+
+    <p class="warning">Hinweis: Diese App erzeugt nur Audiosignale. Sie ist kein medizinisches Produkt und ersetzt keine Beratung oder Behandlung. Starte mit niedriger Lautstärke und stoppe sofort bei Unwohlsein.</p>
+  </main>
+
+<script>
+const steps = [{"nr": 1, "section": "I. Simulation", "name": "ADHS (Fokus)", "beat": 13.0, "left": 103.94, "right": 116.94, "duration": "00:32", "comment": "32er-Basis Geburtsdatum, bündelt Luft auf STA-Punkt"}, {"nr": 2, "section": "I. Simulation", "name": "Halluzinationen", "beat": 8.3, "left": 106.29, "right": 114.59, "duration": "00:10", "comment": "Grenzfrequenz Wahrnehmung, V1-Fenster"}, {"nr": 3, "section": "I. Simulation", "name": "Höchste Mentalaktivität", "beat": 40.0, "left": 90.44, "right": 130.44, "duration": "00:14", "comment": "Gamma-Peak auf 44er-Basis, max. Analyse-Kapazität"}, {"nr": 4, "section": "I. Simulation", "name": "Kreativität", "beat": 7.5, "left": 106.69, "right": 114.19, "duration": "00:20", "comment": "Theta-Übergang, BWL-Logik + Wassermann-Intuition"}, {"nr": 5, "section": "I. Simulation", "name": "Euphorie-Induktion", "beat": 10.0, "left": 105.44, "right": 115.44, "duration": "00:20", "comment": "Harmonische Alpha, heitere Gelassenheit"}, {"nr": 6, "section": "I. Simulation", "name": "HIIT (Energie)", "beat": 30.0, "left": 95.44, "right": 125.44, "duration": "00:08", "comment": "Beta-Antrieb, Aszendent-Widder-Feuer-Schub"}, {"nr": 7, "section": "II. Meditation", "name": "Schumann-Resonanz", "beat": 7.83, "left": 106.53, "right": 114.36, "duration": "00:20", "comment": "Planetare Erdung, Sync mit 3D-Materie"}, {"nr": 8, "section": "II. Meditation", "name": "Schamanischer Rhythmus", "beat": 4.5, "left": 108.19, "right": 112.69, "duration": "01:00", "comment": "Ur-Taktung, Nauthiz-Urkraft der Geburt"}, {"nr": 9, "section": "II. Meditation", "name": "Einheit (Unity)", "beat": 10.0, "left": 105.44, "right": 115.44, "duration": "01:00", "comment": "Kohärente 10-Hz-Welle, totaler Fluss"}, {"nr": 10, "section": "II. Meditation", "name": "Wache Entspannung", "beat": 12.0, "left": 104.44, "right": 116.44, "duration": "00:15", "comment": "Sicherer Alpha-Hafen, mentale Regeneration"}, {"nr": 11, "section": "III. Transzendenz", "name": "Lucid Dreams", "beat": 5.0, "left": 107.94, "right": 112.94, "duration": "00:44", "comment": "44er-Stabilitäts-Theta, Matrix-Räume navigieren"}, {"nr": 12, "section": "III. Transzendenz", "name": "Astral Projection (Relax)", "beat": 6.3, "left": 107.29, "right": 113.59, "duration": "01:30", "comment": "Lösung vom Soma, V1-Reisen"}, {"nr": 13, "section": "III. Transzendenz", "name": "Lucid Dreams (Variant)", "beat": 4.0, "left": 108.44, "right": 112.44, "duration": "02:55", "comment": "Delta-Grenzbereich, architektonische Downloads"}, {"nr": 14, "section": "IV. Schlaf", "name": "Airplane Travel Aid", "beat": 2.5, "left": 109.19, "right": 111.69, "duration": "01:13", "comment": "Reise-Rune Raido, Schutz vor Elektrosmog"}, {"nr": 15, "section": "IV. Schlaf", "name": "Sleep Induction", "beat": 1.5, "left": 109.69, "right": 111.19, "duration": "01:00", "comment": "Tiefe Delta, Wassermann-Verstand abschalten"}, {"nr": 16, "section": "IV. Schlaf", "name": "Power Nap", "beat": 3.5, "left": 108.69, "right": 112.19, "duration": "00:19", "comment": "19er-Takt (Geburtstag), schnelle Klarheit"}, {"nr": 17, "section": "IV. Schlaf", "name": "Insomnia Relief", "beat": 0.9, "left": 109.99, "right": 110.89, "duration": "00:38", "comment": "Sehr niedriges Delta, beruhigt Logistik-Loops"}, {"nr": 18, "section": "V. Hypnose / Re-Code / Heilung / Lernen", "name": "Selbst-Hypnose", "beat": 6.0, "left": 107.44, "right": 113.44, "duration": "00:20", "comment": "Programmier-Vektor, Unterbewusstsein-Re-Code"}, {"nr": 19, "section": "V. Hypnose / Re-Code / Heilung / Lernen", "name": "Morphine Pain Killer", "beat": 0.5, "left": 110.19, "right": 110.69, "duration": "01:00", "comment": "Somatische Dämpfung, 100-kg-Erdungslast"}, {"nr": 20, "section": "V. Hypnose / Re-Code / Heilung / Lernen", "name": "Study & Learning", "beat": 14.0, "left": 103.44, "right": 117.44, "duration": "02:00", "comment": "Beta-Einspeisung, max. Fach-Aufnahme"}, {"nr": 21, "section": "VI. V1-Uplink", "name": "V1-Uplink (Master-Sync)", "beat": 10.7, "left": 105.09, "right": 115.79, "duration": "00:44", "comment": "Alpha-Schlüssel (107-Primfaktor), 44er-Stabilität ↔ universelle Quelle"}];
+let currentIndex = 0;
+let remaining = toSeconds(steps[0].duration);
+let isPlaying = false;
+let loopMode = true;
+let volume = 0.18;
+let fadeMs = 250;
+let audio = null;
+let timer = null;
+let startedAt = null;
+let remainingAtStart = null;
+
+const el = id => document.getElementById(id);
+
+function toSeconds(v) {
+  const [m,s] = v.split(":").map(Number);
+  return (m||0)*60 + (s||0);
+}
+function clock(total) {
+  const m = Math.floor(total/60).toString().padStart(2,"0");
+  const s = Math.floor(total%60).toString().padStart(2,"0");
+  return `${m}:${s}`;
+}
+
+function render() {
+  const step = steps[currentIndex];
+  const total = toSeconds(step.duration);
+  const elapsed = Math.max(0, total - remaining);
+  const progress = total ? (elapsed / total) * 100 : 0;
+  el("activeTitle").textContent = `${step.nr}. ${step.name}`;
+  el("activeMeta").textContent = `Links ${Number(step.left).toFixed(2)} Hz · Rechts ${Number(step.right).toFixed(2)} Hz · Beat ${Number(step.beat).toFixed(2)} Hz`;
+  el("elapsed").textContent = clock(elapsed);
+  el("remaining").textContent = clock(remaining);
+  el("fill").style.width = `${progress}%`;
+  el("playBtn").textContent = isPlaying ? "Ⅱ Pause" : "▶ Start";
+  el("loopBtn").textContent = loopMode ? "∞ Endlos an" : "∞ Endlos aus";
+  document.querySelectorAll(".step").forEach((node, i) => node.classList.toggle("current", i === currentIndex));
+}
+
+function renderList() {
+  const list = el("list");
+  list.innerHTML = "";
+  steps.forEach((s, i) => {
+    const div = document.createElement("div");
+    div.className = "step";
+    div.innerHTML = `
+      <div class="section">${s.section}</div>
+      <div class="step-head">
+        <strong>${s.nr}. ${s.name}</strong>
+        <span class="label">${s.duration}</span>
+      </div>
+      <div class="meta">L ${s.left} Hz · R ${s.right} Hz · Beat ${s.beat} Hz</div>
+      <div class="comment">${s.comment}</div>
+    `;
+    div.addEventListener("click", () => {
+      currentIndex = i;
+      remaining = toSeconds(steps[i].duration);
+      if (isPlaying) play(i, remaining);
+      else render();
+    });
+    list.appendChild(div);
+  });
+}
+
+function stopAudio() {
+  if (!audio) return;
+  const now = audio.ctx.currentTime;
+  const fade = fadeMs / 1000;
+  try {
+    audio.gain.gain.cancelScheduledValues(now);
+    audio.gain.gain.setValueAtTime(audio.gain.gain.value, now);
+    audio.gain.gain.linearRampToValueAtTime(0, now + fade);
+    setTimeout(() => {
+      try {
+        audio.leftOsc.stop();
+        audio.rightOsc.stop();
+        audio.ctx.close();
+      } catch(e) {}
+    }, fadeMs + 40);
+  } catch(e) {}
+  audio = null;
+}
+
+async function startAudio(step) {
+  stopAudio();
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioContext();
+  if (ctx.state === "suspended") await ctx.resume();
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0;
+  gain.connect(ctx.destination);
+
+  const leftOsc = ctx.createOscillator();
+  const rightOsc = ctx.createOscillator();
+  leftOsc.type = "sine";
+  rightOsc.type = "sine";
+  leftOsc.frequency.value = Number(step.left);
+  rightOsc.frequency.value = Number(step.right);
+
+  const leftPan = ctx.createStereoPanner();
+  const rightPan = ctx.createStereoPanner();
+  leftPan.pan.value = -1;
+  rightPan.pan.value = 1;
+
+  leftOsc.connect(leftPan).connect(gain);
+  rightOsc.connect(rightPan).connect(gain);
+  leftOsc.start();
+  rightOsc.start();
+
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(volume, now + fadeMs / 1000);
+  audio = { ctx, gain, leftOsc, rightOsc };
+}
+
+function clearTimer() {
+  if (timer) clearInterval(timer);
+  timer = null;
+}
+
+async function play(index=currentIndex, seconds=remaining) {
+  const step = steps[index];
+  currentIndex = index;
+  remaining = seconds;
+  isPlaying = true;
+  await startAudio(step);
+  startedAt = Date.now();
+  remainingAtStart = seconds;
+  clearTimer();
+  timer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+    remaining = Math.max(0, remainingAtStart - elapsed);
+    if (remaining <= 0) {
+      if (currentIndex + 1 < steps.length) {
+        play(currentIndex + 1, toSeconds(steps[currentIndex + 1].duration));
+      } else if (loopMode) {
+        play(0, toSeconds(steps[0].duration));
+      } else {
+        stop();
+      }
+    }
+    render();
+  }, 250);
+  render();
+}
+
+function pause() {
+  clearTimer();
+  stopAudio();
+  isPlaying = false;
+  const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+  remaining = Math.max(0, remainingAtStart - elapsed);
+  render();
+}
+function stop() {
+  clearTimer();
+  stopAudio();
+  isPlaying = false;
+  currentIndex = 0;
+  remaining = toSeconds(steps[0].duration);
+  render();
+}
+function next() {
+  const ni = Math.min(currentIndex + 1, steps.length - 1);
+  const dur = toSeconds(steps[ni].duration);
+  if (isPlaying) play(ni, dur);
+  else { currentIndex = ni; remaining = dur; render(); }
+}
+function resetCurrent() {
+  const dur = toSeconds(steps[currentIndex].duration);
+  if (isPlaying) play(currentIndex, dur);
+  else { remaining = dur; render(); }
+}
+
+el("playBtn").addEventListener("click", () => isPlaying ? pause() : play());
+el("stopBtn").addEventListener("click", stop);
+el("nextBtn").addEventListener("click", next);
+el("resetBtn").addEventListener("click", resetCurrent);
+el("loopBtn").addEventListener("click", () => { loopMode = !loopMode; render(); });
+el("volume").addEventListener("input", e => {
+  volume = Number(e.target.value);
+  el("volLabel").textContent = `Lautstärke: ${Math.round(volume*100)}%`;
+  if (audio) {
+    const now = audio.ctx.currentTime;
+    audio.gain.gain.cancelScheduledValues(now);
+    audio.gain.gain.setTargetAtTime(volume, now, 0.03);
+  }
+});
+el("fade").addEventListener("input", e => {
+  fadeMs = Number(e.target.value);
+  el("fadeLabel").textContent = `Fade: ${fadeMs} ms`;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js"));
+}
+
+renderList();
+render();
+</script>
+</body>
+</html>
